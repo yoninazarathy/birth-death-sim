@@ -1,6 +1,6 @@
 using Random, Distributions
 
-function bd_rv( λ_f = (x) -> 1.0, 
+function bd_rv( λ_f = (x) -> 1.5, 
                 μ_f = (x) -> x>0 ? 2.0 : 0.0, 
                 stop_crit = (x_prev, x) -> (x_prev == 0 && x == 1),
                 reward_f = (s, x) -> s, 
@@ -28,5 +28,39 @@ function bd_rv( λ_f = (x) -> 1.0,
     return reward
 end
 
-# bd_rv()
-mean([bd_rv()^2 for _ in 1:10^7])
+function pi_prob_mm1(k; λ = 1.5, μ = 2)
+    ρ = λ/μ
+    return (1-ρ)*ρ^k
+end
+
+function pi_prob_cum_mm1(k; λ = 1.5, μ = 2) 
+    return sum(pi_prob_mm1(i) for i in 0:k)
+end
+
+function pi_prob_mm∞(k; λ = 1.5, μ = 2)
+    ρ = λ/μ
+    return pdf(Poisson(ρ), k)
+end
+
+function pi_prob_cum_mm∞(k; λ = 1.5, μ = 2) 
+    return sum(pi_prob_mm∞(i) for i in 0:k)
+end
+
+function dd_m2(pi_prob, pi_prob_cum, λ₀)
+    return (2/(pi_prob(0)*λ₀))*(1/λ₀ + sum([(1-pi_prob_cum(k))^2/(pi_prob(k) * λ₀) for k in 0:100]))
+end
+
+
+println("M/M/1")
+monte_carlo_x2 = mean([bd_rv()^2 for _ in 1:10^6])
+dd_x2 =  dd_m2(pi_prob_mm1, pi_prob_cum_mm1, 1.5)
+
+@show monte_carlo_x2
+@show dd_x2;
+
+println("M/M/∞")
+monte_carlo_x2 = mean([bd_rv((x) -> 1.5,  (x) -> x>0 ? x*2.0 : 0.0)^2 for _ in 1:10^6])
+dd_x2 =  dd_m2(pi_prob_mm∞, pi_prob_cum_mm∞, 1.5)
+
+@show monte_carlo_x2
+@show dd_x2;
